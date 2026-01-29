@@ -1,0 +1,8 @@
+numpy
+scipy
+librosa
+soundfile
+matplotlib
+cvxpy
+tqdm
+jinja2
