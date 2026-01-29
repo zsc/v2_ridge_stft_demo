@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GT vs Reconstruction</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+.container { display: flex; gap: 24px; flex-wrap: wrap; }
+.column { flex: 1; }
+img { width: 100%; height: auto; border: 1px solid #ccc; }
+.summary { color: #333; font-size: 12px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<p class="summary">n_fft=2048 hop=256 n_mels=128 k=3 lam_sparse=0.05 lam_tv=0.1 lam_g=0.01</p>
+<div class="container">
+  <div class="column">
+    <h2>Ground Truth</h2>
+    <img src="gt_mel.png" alt="GT Mel" />
+    <audio controls src="gt.wav"></audio>
+  </div>
+  
+  <div class="column">
+    <h2>Ridge Only</h2>
+    <img src="ridge_mel.png" alt="Ridge Mel" />
+    <audio controls src="ridge.wav"></audio>
+  </div>
+  
+  <div class="column">
+    <h2>R (Direct)</h2>
+    <img src="ridge_direct.png" alt="Ridge Direct" />
+  </div>
+  <div class="column">
+    <h2>Reconstruction</h2>
+    <img src="recon_mel.png" alt="Recon Mel" />
+    <audio controls src="recon.wav"></audio>
+  </div>
+</div>
+</body>
+</html>
