@@ -14,59 +14,63 @@
 
 ## 数学公式（核心）
 
+GitHub 默认不渲染 LaTeX，所以这里用纯文本公式表示。
+
 STFT 与相位：
 
-$$
-S = \mathrm{STFT}(x), \quad A = |S|, \quad P = \angle S
-$$
+```text
+S = STFT(x),  A = |S|,  P = angle(S)
+```
 
 Mel 映射：
 
-$$
-M = F_{mel} A
-$$
+```text
+M = F_mel * A
+```
 
 Ridge 优化（凸）：
 
-$$
-\min_{R} \ \frac{1}{2}\|R - M\|_F^2 + \lambda_{s} \|R\|_1 + \lambda_{tv} \sum_{i,t} |R_{i,t+1}-R_{i,t}|
-$$
+```text
+min_R  0.5 * ||R - M||_F^2 + lam_s * ||R||_1 + lam_tv * sum_{i,t} |R_{i,t+1} - R_{i,t}|
+```
 
 约束：
 
-$$
-R \ge 0, \quad R_{i,t} = 0 \ \text{if} \ V_{i,t}=0, \quad R \le M
-$$
+```text
+R >= 0
+R[i,t] = 0 if V[i,t] = 0
+R <= M
+```
 
 每帧 Top-k：对每个时间帧保留最大 k 个 ridge，其余置零。
 
 Gaussian 残差拟合：
 
-$$
-E = \max(M - R, 0)
-$$
+```text
+E = max(M - R, 0)
+```
 
-$$
-B_j(f,t) = \exp\left(-\frac{1}{2}\left(\frac{(f-f_c)^2}{\sigma_f^2} + \frac{(t-t_c)^2}{\sigma_t^2}\right)\right)
-$$
+```text
+B_j(f,t) = exp(-0.5 * ( (f - f_c)^2 / sigma_f^2 + (t - t_c)^2 / sigma_t^2 ))
+```
 
-$$
-\min_{c \ge 0} \ \frac{1}{2} \|B c - \mathrm{vec}(E)\|_2^2 + \lambda_g \|c\|_1
-$$
+```text
+min_{c >= 0}  0.5 * ||B c - vec(E)||_2^2 + lam_g * ||c||_1
+```
 
-$$
-G = \mathrm{reshape}(B c), \quad M_{hat} = \max(R + G, 0)
-$$
+```text
+G = reshape(B c),  M_hat = max(R + G, 0)
+```
 
 逆 Mel 与重建：
 
-$$
-A_{hat} \approx F_{mel}^+ M_{hat} \quad \text{(pinv)}
-$$
+```text
+A_hat ~= pinv(F_mel) * M_hat
+```
 
-$$
-S_{hat} = A_{hat} \cdot e^{jP}, \quad x_{hat} = \mathrm{ISTFT}(S_{hat})
-$$
+```text
+S_hat = A_hat * exp(jP),  x_hat = ISTFT(S_hat)
+```
 
 ## 安装
 
