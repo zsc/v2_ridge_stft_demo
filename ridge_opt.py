@@ -46,7 +46,7 @@ def _topk_per_frame(R, V, k):
 def ridge_optimize(
     M,
     V,
-    k=5,
+    k=3,
     lam_sparse=0.05,
     lam_tv=0.1,
     solver="SCS",

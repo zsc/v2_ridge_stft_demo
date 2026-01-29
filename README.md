@@ -80,7 +80,7 @@ pip install -r requirements.txt
 python main.py \
   --input input.wav \
   --output_dir out \
-  --k 5 \
+  --k 3 \
   --lam_sparse 0.05 \
   --lam_tv 0.1 \
   --sigma_t 1.0 \
@@ -124,7 +124,7 @@ python main.py \
 - `--peak_dilate`：是否膨胀峰值掩码（0/1），默认 `0`
 
 ### Ridge 优化
-- `--k`：每帧保留 ridge 数量上限，默认 `5`
+- `--k`：每帧保留 ridge 数量上限，默认 `3`
 - `--lam_sparse`：L1 稀疏正则系数，默认 `0.05`
 - `--lam_tv`：时间 TV 正则系数，默认 `0.1`
 - `--solver`：CVXPY 求解器（SCS/ECOS/OSQP），默认 `SCS`

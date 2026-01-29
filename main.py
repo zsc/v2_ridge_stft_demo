@@ -31,7 +31,7 @@ def parse_args():
     parser.add_argument("--peak_height", type=float, default=None)
     parser.add_argument("--peak_dilate", type=int, default=0)
 
-    parser.add_argument("--k", type=int, default=5)
+    parser.add_argument("--k", type=int, default=3)
     parser.add_argument("--lam_sparse", type=float, default=0.05)
     parser.add_argument("--lam_tv", type=float, default=0.1)
     parser.add_argument("--solver", type=str, default="SCS", choices=["SCS", "ECOS", "OSQP"])
