@@ -20,7 +20,53 @@ def build_time_centers(T, spacing_frames=None):
     return centers
 
 
-def pick_freq_centers(R, V, M, t_c, k):
+def is_voiced_frame(
+    R,
+    V,
+    M,
+    t_c,
+    voiced_min_peak_count=2,
+    voiced_min_ridge_ratio=0.03,
+    voiced_max_flatness=0.55,
+):
+    frame = M[:, t_c].astype(np.float32)
+    total = float(np.sum(frame))
+    if total <= 1e-8:
+        return False
+
+    peak_count = int(np.count_nonzero(V[:, t_c]))
+    ridge_ratio = float(np.sum(R[:, t_c]) / total)
+
+    frame_safe = np.maximum(frame, 1e-8)
+    flatness = float(np.exp(np.mean(np.log(frame_safe))) / np.mean(frame_safe))
+
+    return peak_count >= voiced_min_peak_count and (
+        ridge_ratio >= voiced_min_ridge_ratio or flatness <= voiced_max_flatness
+    )
+
+
+def pick_freq_centers(
+    R,
+    V,
+    M,
+    t_c,
+    k,
+    voiced_only=True,
+    voiced_min_peak_count=2,
+    voiced_min_ridge_ratio=0.03,
+    voiced_max_flatness=0.55,
+):
+    if voiced_only and not is_voiced_frame(
+        R,
+        V,
+        M,
+        t_c,
+        voiced_min_peak_count=voiced_min_peak_count,
+        voiced_min_ridge_ratio=voiced_min_ridge_ratio,
+        voiced_max_flatness=voiced_max_flatness,
+    ):
+        return []
+
     idx = np.where(R[:, t_c] > 0)[0]
     if idx.size == 0:
         idx = np.where(V[:, t_c])[0]
@@ -32,37 +78,63 @@ def pick_freq_centers(R, V, M, t_c, k):
         idx = idx[topk_local]
     return idx.tolist()
 
-
-def build_dictionary(n_mels, T, time_centers, freq_centers_map, sigma_t, sigma_f_list):
+def build_dictionary(
+    n_mels,
+    T,
+    time_centers,
+    freq_centers_map,
+    sigma_t,
+    sigma_f_list,
+    balls_per_center=2,
+    width_growth=0.4,
+):
     mel_axis = np.arange(n_mels)
     time_axis = np.arange(T)
 
     basis_list = []
     for t_c in time_centers:
-        g_t = _gaussian_1d(time_axis, t_c, sigma_t)
         for f_c in freq_centers_map[t_c]:
-            for sigma_f in sigma_f_list:
-                g_f = _gaussian_1d(mel_axis, f_c, sigma_f)
-                basis = np.outer(g_f, g_t)
-                basis_list.append(basis.reshape(-1))
+            for ball_idx in range(max(1, int(balls_per_center))):
+                scale = 1.0 + float(ball_idx) * float(width_growth)
+                sigma_t_eff = sigma_t * scale
+                g_t = _gaussian_1d(time_axis, t_c, sigma_t_eff)
+                for sigma_f in sigma_f_list:
+                    sigma_f_eff = sigma_f * scale
+                    g_f = _gaussian_1d(mel_axis, f_c, sigma_f_eff)
+                    basis = np.outer(g_f, g_t)
+                    basis_list.append(basis.reshape(-1))
     if not basis_list:
         return np.zeros((n_mels * T, 0), dtype=np.float32)
     B = np.stack(basis_list, axis=1).astype(np.float32)
     return B
 
 
-def _build_dictionary_torch(n_mels, T, time_centers, freq_centers_map, sigma_t, sigma_f_list, device):
+def _build_dictionary_torch(
+    n_mels,
+    T,
+    time_centers,
+    freq_centers_map,
+    sigma_t,
+    sigma_f_list,
+    device,
+    balls_per_center=2,
+    width_growth=0.4,
+):
     torch = __import__("torch")
     mel_axis = torch.arange(n_mels, device=device, dtype=torch.float32)
     time_axis = torch.arange(T, device=device, dtype=torch.float32)
 
     basis_list = []
     for t_c in time_centers:
-        g_t = torch.exp(-0.5 * ((time_axis - float(t_c)) ** 2) / (float(sigma_t) ** 2))
         for f_c in freq_centers_map[t_c]:
-            for sigma_f in sigma_f_list:
-                g_f = torch.exp(-0.5 * ((mel_axis - float(f_c)) ** 2) / (float(sigma_f) ** 2))
-                basis_list.append((g_f[:, None] * g_t[None, :]).reshape(-1))
+            for ball_idx in range(max(1, int(balls_per_center))):
+                scale = 1.0 + float(ball_idx) * float(width_growth)
+                sigma_t_eff = float(sigma_t) * scale
+                g_t = torch.exp(-0.5 * ((time_axis - float(t_c)) ** 2) / (sigma_t_eff ** 2))
+                for sigma_f in sigma_f_list:
+                    sigma_f_eff = float(sigma_f) * scale
+                    g_f = torch.exp(-0.5 * ((mel_axis - float(f_c)) ** 2) / (sigma_f_eff ** 2))
+                    basis_list.append((g_f[:, None] * g_t[None, :]).reshape(-1))
     if not basis_list:
         return torch.zeros((n_mels * T, 0), device=device, dtype=torch.float32)
     return torch.stack(basis_list, dim=1)
@@ -97,6 +169,12 @@ def _gaussian_optimize_torch(
     device,
     max_iter,
     tol,
+    voiced_only,
+    voiced_min_peak_count,
+    voiced_min_ridge_ratio,
+    voiced_max_flatness,
+    balls_per_center,
+    width_growth,
 ):
     torch = __import__("torch")
     device = resolve_device(device)
@@ -105,7 +183,17 @@ def _gaussian_optimize_torch(
     time_centers = build_time_centers(T, spacing_frames)
     freq_centers_map = {}
     for t_c in time_centers:
-        freq_centers_map[t_c] = pick_freq_centers(R, V, M, t_c, k)
+        freq_centers_map[t_c] = pick_freq_centers(
+            R,
+            V,
+            M,
+            t_c,
+            k,
+            voiced_only=voiced_only,
+            voiced_min_peak_count=voiced_min_peak_count,
+            voiced_min_ridge_ratio=voiced_min_ridge_ratio,
+            voiced_max_flatness=voiced_max_flatness,
+        )
 
     B = _build_dictionary_torch(
         n_mels,
@@ -115,6 +203,8 @@ def _gaussian_optimize_torch(
         sigma_t,
         sigma_f_list,
         device,
+        balls_per_center=balls_per_center,
+        width_growth=width_growth,
     )
     if B.shape[1] == 0:
         return np.zeros_like(E)
@@ -148,16 +238,52 @@ def _gaussian_optimize_torch(
     return to_numpy(G)
 
 
-def _gaussian_optimize_cvxpy(E, R, V, M, k, spacing_frames, sigma_t, sigma_f_list, lam_g, solver="SCS"):
+def _gaussian_optimize_cvxpy(
+    E,
+    R,
+    V,
+    M,
+    k,
+    spacing_frames,
+    sigma_t,
+    sigma_f_list,
+    lam_g,
+    solver="SCS",
+    voiced_only=True,
+    voiced_min_peak_count=2,
+    voiced_min_ridge_ratio=0.03,
+    voiced_max_flatness=0.55,
+    balls_per_center=2,
+    width_growth=0.4,
+):
     if cp is None:
         raise RuntimeError("CVXPY is not installed, so the cvxpy backend is unavailable.")
     n_mels, T = E.shape
     time_centers = build_time_centers(T, spacing_frames)
     freq_centers_map = {}
     for t_c in time_centers:
-        freq_centers_map[t_c] = pick_freq_centers(R, V, M, t_c, k)
+        freq_centers_map[t_c] = pick_freq_centers(
+            R,
+            V,
+            M,
+            t_c,
+            k,
+            voiced_only=voiced_only,
+            voiced_min_peak_count=voiced_min_peak_count,
+            voiced_min_ridge_ratio=voiced_min_ridge_ratio,
+            voiced_max_flatness=voiced_max_flatness,
+        )
 
-    B = build_dictionary(n_mels, T, time_centers, freq_centers_map, sigma_t, sigma_f_list)
+    B = build_dictionary(
+        n_mels,
+        T,
+        time_centers,
+        freq_centers_map,
+        sigma_t,
+        sigma_f_list,
+        balls_per_center=balls_per_center,
+        width_growth=width_growth,
+    )
     if B.shape[1] == 0:
         return np.zeros_like(E)
 
@@ -193,6 +319,12 @@ def gaussian_optimize(
     device="auto",
     max_iter=300,
     tol=1e-4,
+    voiced_only=True,
+    voiced_min_peak_count=2,
+    voiced_min_ridge_ratio=0.03,
+    voiced_max_flatness=0.55,
+    balls_per_center=2,
+    width_growth=0.4,
 ):
     use_torch = backend == "torch" or (backend == "auto" and has_torch())
     if use_torch:
@@ -209,6 +341,12 @@ def gaussian_optimize(
             device,
             max_iter,
             tol,
+            voiced_only,
+            voiced_min_peak_count,
+            voiced_min_ridge_ratio,
+            voiced_max_flatness,
+            balls_per_center,
+            width_growth,
         )
     return _gaussian_optimize_cvxpy(
         E,
@@ -221,4 +359,10 @@ def gaussian_optimize(
         sigma_f_list,
         lam_g,
         solver=solver,
+        voiced_only=voiced_only,
+        voiced_min_peak_count=voiced_min_peak_count,
+        voiced_min_ridge_ratio=voiced_min_ridge_ratio,
+        voiced_max_flatness=voiced_max_flatness,
+        balls_per_center=balls_per_center,
+        width_growth=width_growth,
     )

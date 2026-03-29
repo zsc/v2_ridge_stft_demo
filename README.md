@@ -44,6 +44,14 @@ R <= M
 
 每帧 Top-k：对每个时间帧保留最大 k 个 ridge，其余置零。
 
+Ridge 线性谱加粗：
+
+```text
+select top-k ridge centers -> build one thickened band template per center in linear-frequency bins -> fit nonnegative per-band strengths -> sum fitted bands -> R
+```
+
+这里的加粗宽度在 `linear FFT bins` 上固定，所以映射回 Mel 后，不同频段会呈现不同的视觉加粗程度。每条加粗带的强度单独拟合，因此 top-k 各带的强度可以互相不同。
+
 Gaussian 残差拟合：
 
 ```text
@@ -151,6 +159,7 @@ python main.py \
 - `--ridge_refine`：是否做 top-k 后再优化（True/False），默认 `True`
 - `--ridge_max_iter`：torch ridge 迭代次数，默认 `300`
 - `--ridge_tol`：torch ridge 收敛阈值，默认 `1e-4`
+- `--ridge_linear_thicken_sigma`：线性频谱全局加粗的 Gaussian sigma（单位：FFT bins），默认 `2.0`
 
 ### Gaussian Balls
 - `--spacing_frames`：时间中心间隔（帧），默认自适应 `T/32`
@@ -159,6 +168,12 @@ python main.py \
 - `--lam_g`：Gaussian 系数 L1 正则，默认 `0.01`
 - `--gaussian_max_iter`：torch gaussian 迭代次数，默认 `300`
 - `--gaussian_tol`：torch gaussian 收敛阈值，默认 `1e-4`
+- `--gaussian_voiced_only`：只在 voiced 时间中心播种 gaussian，默认 `True`
+- `--gaussian_voiced_min_peak_count`：判定 voiced 的最小峰数，默认 `2`
+- `--gaussian_voiced_min_ridge_ratio`：判定 voiced 的最小 ridge 能量占比，默认 `0.03`
+- `--gaussian_voiced_max_flatness`：判定 voiced 的最大谱平坦度，默认 `0.55`
+- `--gaussian_balls_per_center`：每个时间中心/频率中心种多少个 gaussian，默认 `2`
+- `--gaussian_width_growth`：后续 gaussian 的宽度增长比例，默认 `0.4`
 
 ### 逆 Mel
 - `--mel_inverse`：`pinv`（快速）或 `nnls`（更精确但慢），默认 `pinv`

@@ -5,7 +5,13 @@ import numpy as np
 from backend import has_torch, resolve_device
 from audio import load_audio, save_audio
 from stft_utils import stft, istft, mag_phase
-from mel_utils import mel_filter, mel_forward, mel_inverse_pinv, mel_inverse_nnls
+from mel_utils import (
+    mel_filter,
+    mel_forward,
+    mel_inverse_pinv,
+    mel_inverse_nnls,
+    fit_topk_thickened_mel_bands,
+)
 from peaks import peak_mask
 from ridge_opt import ridge_optimize
 from gaussian_opt import gaussian_optimize
@@ -42,6 +48,7 @@ def parse_args():
     parser.add_argument("--ridge_refine", type=lambda x: x.lower() == "true", default=True)
     parser.add_argument("--ridge_max_iter", type=int, default=300)
     parser.add_argument("--ridge_tol", type=float, default=1e-4)
+    parser.add_argument("--ridge_linear_thicken_sigma", type=float, default=2.0)
 
     parser.add_argument("--spacing_frames", type=int, default=None)
     parser.add_argument("--sigma_t", type=float, default=1.0)
@@ -49,6 +56,12 @@ def parse_args():
     parser.add_argument("--lam_g", type=float, default=0.01)
     parser.add_argument("--gaussian_max_iter", type=int, default=300)
     parser.add_argument("--gaussian_tol", type=float, default=1e-4)
+    parser.add_argument("--gaussian_voiced_only", type=lambda x: x.lower() == "true", default=True)
+    parser.add_argument("--gaussian_voiced_min_peak_count", type=int, default=2)
+    parser.add_argument("--gaussian_voiced_min_ridge_ratio", type=float, default=0.03)
+    parser.add_argument("--gaussian_voiced_max_flatness", type=float, default=0.55)
+    parser.add_argument("--gaussian_balls_per_center", type=int, default=2)
+    parser.add_argument("--gaussian_width_growth", type=float, default=0.4)
 
     parser.add_argument("--mel_inverse", type=str, default="pinv", choices=["pinv", "nnls"])
     parser.add_argument("--seed", type=int, default=0)
@@ -100,7 +113,7 @@ def main():
     if args.save_intermediates:
         np.save(os.path.join(args.output_dir, "peak_mask.npy"), V)
 
-    R = ridge_optimize(
+    R_raw = ridge_optimize(
         M,
         V,
         k=args.k,
@@ -113,8 +126,18 @@ def main():
         max_iter=args.ridge_max_iter,
         tol=args.ridge_tol,
     )
+    R, R_band_strength = fit_topk_thickened_mel_bands(
+        M,
+        R_raw > 0,
+        F_mel,
+        sigma_bins=args.ridge_linear_thicken_sigma,
+        device=device,
+        clip_upper=True,
+    )
     if args.save_intermediates:
+        np.save(os.path.join(args.output_dir, "ridge_raw.npy"), R_raw)
         np.save(os.path.join(args.output_dir, "ridge.npy"), R)
+        np.save(os.path.join(args.output_dir, "ridge_band_strength.npy"), R_band_strength)
 
     # Ridge-only reconstruction
     if args.mel_inverse == "pinv":
@@ -138,7 +161,7 @@ def main():
     sigma_f_list = [float(x) for x in args.sigma_f_list.split(",") if x.strip()]
     G = gaussian_optimize(
         E,
-        R,
+        R_raw,
         V,
         M,
         k=args.k,
@@ -151,6 +174,12 @@ def main():
         device=device,
         max_iter=args.gaussian_max_iter,
         tol=args.gaussian_tol,
+        voiced_only=args.gaussian_voiced_only,
+        voiced_min_peak_count=args.gaussian_voiced_min_peak_count,
+        voiced_min_ridge_ratio=args.gaussian_voiced_min_ridge_ratio,
+        voiced_max_flatness=args.gaussian_voiced_max_flatness,
+        balls_per_center=args.gaussian_balls_per_center,
+        width_growth=args.gaussian_width_growth,
     )
     if args.save_intermediates:
         np.save(os.path.join(args.output_dir, "gaussian.npy"), G)
@@ -229,9 +258,13 @@ def main():
         "k": args.k,
         "lam_sparse": args.lam_sparse,
         "lam_tv": args.lam_tv,
+        "r_lin_sigma": args.ridge_linear_thicken_sigma,
         "lam_g": args.lam_g,
         "backend": args.backend,
         "device": device,
+        "g_voiced_only": args.gaussian_voiced_only,
+        "g_balls": args.gaussian_balls_per_center,
+        "g_width_growth": args.gaussian_width_growth,
     }
     write_html(
         os.path.join(args.output_dir, "report.html"),
