@@ -1,5 +1,11 @@
 import numpy as np
-import cvxpy as cp
+
+try:
+    import cvxpy as cp
+except ImportError:  # pragma: no cover - optional dependency
+    cp = None
+
+from backend import has_torch, resolve_device, to_numpy, to_torch
 
 
 def _gaussian_1d(x, mu, sigma):
@@ -45,7 +51,106 @@ def build_dictionary(n_mels, T, time_centers, freq_centers_map, sigma_t, sigma_f
     return B
 
 
-def gaussian_optimize(E, R, V, M, k, spacing_frames, sigma_t, sigma_f_list, lam_g, solver="SCS"):
+def _build_dictionary_torch(n_mels, T, time_centers, freq_centers_map, sigma_t, sigma_f_list, device):
+    torch = __import__("torch")
+    mel_axis = torch.arange(n_mels, device=device, dtype=torch.float32)
+    time_axis = torch.arange(T, device=device, dtype=torch.float32)
+
+    basis_list = []
+    for t_c in time_centers:
+        g_t = torch.exp(-0.5 * ((time_axis - float(t_c)) ** 2) / (float(sigma_t) ** 2))
+        for f_c in freq_centers_map[t_c]:
+            for sigma_f in sigma_f_list:
+                g_f = torch.exp(-0.5 * ((mel_axis - float(f_c)) ** 2) / (float(sigma_f) ** 2))
+                basis_list.append((g_f[:, None] * g_t[None, :]).reshape(-1))
+    if not basis_list:
+        return torch.zeros((n_mels * T, 0), device=device, dtype=torch.float32)
+    return torch.stack(basis_list, dim=1)
+
+
+def _estimate_lipschitz(B, n_iter=20):
+    torch = __import__("torch")
+    if B.shape[1] == 0:
+        return 1.0
+    v = torch.ones(B.shape[1], device=B.device, dtype=B.dtype)
+    v = v / max(torch.linalg.vector_norm(v).item(), 1e-12)
+    for _ in range(n_iter):
+        v = B.T @ (B @ v)
+        norm = torch.linalg.vector_norm(v).item()
+        if norm <= 1e-12:
+            return 1.0
+        v = v / norm
+    Bv = B @ v
+    return max(float(torch.dot(Bv, Bv).item()), 1e-6)
+
+
+def _gaussian_optimize_torch(
+    E,
+    R,
+    V,
+    M,
+    k,
+    spacing_frames,
+    sigma_t,
+    sigma_f_list,
+    lam_g,
+    device,
+    max_iter,
+    tol,
+):
+    torch = __import__("torch")
+    device = resolve_device(device)
+
+    n_mels, T = E.shape
+    time_centers = build_time_centers(T, spacing_frames)
+    freq_centers_map = {}
+    for t_c in time_centers:
+        freq_centers_map[t_c] = pick_freq_centers(R, V, M, t_c, k)
+
+    B = _build_dictionary_torch(
+        n_mels,
+        T,
+        time_centers,
+        freq_centers_map,
+        sigma_t,
+        sigma_f_list,
+        device,
+    )
+    if B.shape[1] == 0:
+        return np.zeros_like(E)
+
+    target = to_torch(E.reshape(-1), device=device, dtype=torch.float32)
+    L = _estimate_lipschitz(B)
+    step = 0.99 / L
+
+    c = torch.zeros(B.shape[1], device=device, dtype=torch.float32)
+    z = c.clone()
+    t_k = 1.0
+
+    for it in range(max_iter):
+        residual = B @ z - target
+        grad = B.T @ residual
+        c_next = (z - step * grad - step * lam_g).clamp_min(0.0)
+        t_next = 0.5 * (1.0 + np.sqrt(1.0 + 4.0 * t_k * t_k))
+        z = c_next + ((t_k - 1.0) / t_next) * (c_next - c)
+
+        if tol > 0 and (it + 1) % 25 == 0:
+            diff = torch.linalg.vector_norm(c_next - c).item()
+            base = max(torch.linalg.vector_norm(c_next).item(), 1.0)
+            if diff <= tol * base:
+                c = c_next
+                break
+
+        c = c_next
+        t_k = t_next
+
+    G = (B @ c).reshape(n_mels, T).clamp_min(0.0)
+    return to_numpy(G)
+
+
+def _gaussian_optimize_cvxpy(E, R, V, M, k, spacing_frames, sigma_t, sigma_f_list, lam_g, solver="SCS"):
+    if cp is None:
+        raise RuntimeError("CVXPY is not installed, so the cvxpy backend is unavailable.")
     n_mels, T = E.shape
     time_centers = build_time_centers(T, spacing_frames)
     freq_centers_map = {}
@@ -71,3 +176,49 @@ def gaussian_optimize(E, R, V, M, k, spacing_frames, sigma_t, sigma_f_list, lam_
 
     G = (B @ c_val).reshape(n_mels, T)
     return np.clip(G, 0.0, None)
+
+
+def gaussian_optimize(
+    E,
+    R,
+    V,
+    M,
+    k,
+    spacing_frames,
+    sigma_t,
+    sigma_f_list,
+    lam_g,
+    solver="SCS",
+    backend="auto",
+    device="auto",
+    max_iter=300,
+    tol=1e-4,
+):
+    use_torch = backend == "torch" or (backend == "auto" and has_torch())
+    if use_torch:
+        return _gaussian_optimize_torch(
+            E,
+            R,
+            V,
+            M,
+            k,
+            spacing_frames,
+            sigma_t,
+            sigma_f_list,
+            lam_g,
+            device,
+            max_iter,
+            tol,
+        )
+    return _gaussian_optimize_cvxpy(
+        E,
+        R,
+        V,
+        M,
+        k,
+        spacing_frames,
+        sigma_t,
+        sigma_f_list,
+        lam_g,
+        solver=solver,
+    )

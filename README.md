@@ -78,6 +78,8 @@ S_hat = A_hat * exp(jP),  x_hat = ISTFT(S_hat)
 pip install -r requirements.txt
 ```
 
+如果要启用 GPU，加装带 CUDA 的 `torch`。`torch` 不写进 `requirements.txt`，是因为不同机器通常需要不同的 wheel / index。
+
 ## 运行
 
 ```bash
@@ -92,6 +94,18 @@ python main.py \
   --lam_g 0.01 \
   --mel_inverse pinv \
   --save_intermediates True
+```
+
+启用 `torch + CUDA`：
+
+```bash
+python main.py \
+  --input input.wav \
+  --output_dir out_gpu \
+  --backend torch \
+  --device cuda \
+  --stft_backend torch \
+  --mel_inverse pinv
 ```
 
 ## 输出
@@ -131,19 +145,26 @@ python main.py \
 - `--k`：每帧保留 ridge 数量上限，默认 `3`
 - `--lam_sparse`：L1 稀疏正则系数，默认 `0.05`
 - `--lam_tv`：时间 TV 正则系数，默认 `0.1`
+- `--backend`：`auto` / `torch` / `cvxpy`，默认 `auto`
+- `--device`：`auto` / `cpu` / `cuda`，默认 `auto`
 - `--solver`：CVXPY 求解器（SCS/ECOS/OSQP），默认 `SCS`
 - `--ridge_refine`：是否做 top-k 后再优化（True/False），默认 `True`
+- `--ridge_max_iter`：torch ridge 迭代次数，默认 `300`
+- `--ridge_tol`：torch ridge 收敛阈值，默认 `1e-4`
 
 ### Gaussian Balls
 - `--spacing_frames`：时间中心间隔（帧），默认自适应 `T/32`
 - `--sigma_t`：时间方向 sigma（帧），默认 `1.0`（小，避免横向变宽）
 - `--sigma_f_list`：频率方向 sigma 列表（逗号分隔），默认 `1,2,4,8,16`
 - `--lam_g`：Gaussian 系数 L1 正则，默认 `0.01`
+- `--gaussian_max_iter`：torch gaussian 迭代次数，默认 `300`
+- `--gaussian_tol`：torch gaussian 收敛阈值，默认 `1e-4`
 
 ### 逆 Mel
 - `--mel_inverse`：`pinv`（快速）或 `nnls`（更精确但慢），默认 `pinv`
 
 ### 其他
+- `--stft_backend`：`auto` / `librosa` / `torch`，默认 `auto`
 - `--seed`：随机种子，默认 `0`
 - `--save_intermediates`：是否保存中间结果（True/False），默认 `True`
 

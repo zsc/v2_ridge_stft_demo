@@ -2,6 +2,7 @@ import argparse
 import os
 import numpy as np
 
+from backend import has_torch, resolve_device
 from audio import load_audio, save_audio
 from stft_utils import stft, istft, mag_phase
 from mel_utils import mel_filter, mel_forward, mel_inverse_pinv, mel_inverse_nnls
@@ -21,6 +22,7 @@ def parse_args():
     parser.add_argument("--hop_length", type=int, default=256)
     parser.add_argument("--win_length", type=int, default=2048)
     parser.add_argument("--center", type=lambda x: x.lower() == "true", default=True)
+    parser.add_argument("--stft_backend", type=str, default="auto", choices=["auto", "librosa", "torch"])
 
     parser.add_argument("--n_mels", type=int, default=128)
     parser.add_argument("--fmin", type=float, default=0.0)
@@ -34,13 +36,19 @@ def parse_args():
     parser.add_argument("--k", type=int, default=3)
     parser.add_argument("--lam_sparse", type=float, default=0.05)
     parser.add_argument("--lam_tv", type=float, default=0.1)
+    parser.add_argument("--backend", type=str, default="auto", choices=["auto", "torch", "cvxpy"])
+    parser.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"])
     parser.add_argument("--solver", type=str, default="SCS", choices=["SCS", "ECOS", "OSQP"])
     parser.add_argument("--ridge_refine", type=lambda x: x.lower() == "true", default=True)
+    parser.add_argument("--ridge_max_iter", type=int, default=300)
+    parser.add_argument("--ridge_tol", type=float, default=1e-4)
 
     parser.add_argument("--spacing_frames", type=int, default=None)
     parser.add_argument("--sigma_t", type=float, default=1.0)
     parser.add_argument("--sigma_f_list", type=str, default="1,2,4,8,16")
     parser.add_argument("--lam_g", type=float, default=0.01)
+    parser.add_argument("--gaussian_max_iter", type=int, default=300)
+    parser.add_argument("--gaussian_tol", type=float, default=1e-4)
 
     parser.add_argument("--mel_inverse", type=str, default="pinv", choices=["pinv", "nnls"])
     parser.add_argument("--seed", type=int, default=0)
@@ -54,6 +62,11 @@ def main():
     np.random.seed(args.seed)
     os.makedirs(args.output_dir, exist_ok=True)
 
+    device = "cpu"
+    if args.backend == "torch" or args.device != "cpu" or (args.backend == "auto" and has_torch()):
+        device = resolve_device(args.device)
+    print(f"[info] backend={args.backend} device={device} stft_backend={args.stft_backend}")
+
     y, sr = load_audio(args.input, sr=args.sr, mono=True)
     save_audio(os.path.join(args.output_dir, "gt.wav"), y, sr)
 
@@ -63,6 +76,8 @@ def main():
         hop_length=args.hop_length,
         win_length=args.win_length,
         center=args.center,
+        backend=args.stft_backend,
+        device=device,
     )
     A, P = mag_phase(S)
 
@@ -71,7 +86,7 @@ def main():
         np.save(os.path.join(args.output_dir, "stft_phase.npy"), P)
 
     F_mel = mel_filter(sr, args.n_fft, args.n_mels, args.fmin, args.fmax)
-    M = mel_forward(F_mel, A)
+    M = mel_forward(F_mel, A, device=device)
     if args.save_intermediates:
         np.save(os.path.join(args.output_dir, "mel_mag.npy"), M)
 
@@ -93,13 +108,17 @@ def main():
         lam_tv=args.lam_tv,
         solver=args.solver,
         ridge_refine=args.ridge_refine,
+        backend=args.backend,
+        device=device,
+        max_iter=args.ridge_max_iter,
+        tol=args.ridge_tol,
     )
     if args.save_intermediates:
         np.save(os.path.join(args.output_dir, "ridge.npy"), R)
 
     # Ridge-only reconstruction
     if args.mel_inverse == "pinv":
-        A_hat_ridge = mel_inverse_pinv(F_mel, R)
+        A_hat_ridge = mel_inverse_pinv(F_mel, R, device=device)
     else:
         A_hat_ridge = mel_inverse_nnls(F_mel, R)
     S_hat_ridge = A_hat_ridge * np.exp(1j * P)
@@ -109,6 +128,8 @@ def main():
         win_length=args.win_length,
         center=args.center,
         length=len(y),
+        backend=args.stft_backend,
+        device=device,
     )
     y_ridge = np.clip(y_ridge, -1.0, 1.0)
     save_audio(os.path.join(args.output_dir, "ridge.wav"), y_ridge, sr)
@@ -126,6 +147,10 @@ def main():
         sigma_f_list=sigma_f_list,
         lam_g=args.lam_g,
         solver=args.solver,
+        backend=args.backend,
+        device=device,
+        max_iter=args.gaussian_max_iter,
+        tol=args.gaussian_tol,
     )
     if args.save_intermediates:
         np.save(os.path.join(args.output_dir, "gaussian.npy"), G)
@@ -135,7 +160,7 @@ def main():
         np.save(os.path.join(args.output_dir, "mel_hat.npy"), M_hat)
 
     if args.mel_inverse == "pinv":
-        A_hat = mel_inverse_pinv(F_mel, M_hat)
+        A_hat = mel_inverse_pinv(F_mel, M_hat, device=device)
     else:
         A_hat = mel_inverse_nnls(F_mel, M_hat)
     if args.save_intermediates:
@@ -148,6 +173,8 @@ def main():
         win_length=args.win_length,
         center=args.center,
         length=len(y),
+        backend=args.stft_backend,
+        device=device,
     )
     y_hat = np.clip(y_hat, -1.0, 1.0)
     save_audio(os.path.join(args.output_dir, "recon.wav"), y_hat, sr)
@@ -199,6 +226,8 @@ def main():
         "lam_sparse": args.lam_sparse,
         "lam_tv": args.lam_tv,
         "lam_g": args.lam_g,
+        "backend": args.backend,
+        "device": device,
     }
     write_html(
         os.path.join(args.output_dir, "report.html"),
