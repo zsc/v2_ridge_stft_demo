@@ -213,10 +213,14 @@ def main():
     recon_png = os.path.join(args.output_dir, "recon_mel.png")
     ridge_png = os.path.join(args.output_dir, "ridge_mel.png")
     ridge_direct_png = os.path.join(args.output_dir, "ridge_direct.png")
+    gaussian_direct_png = os.path.join(args.output_dir, "gaussian_direct.png")
+    fit_sum_direct_png = os.path.join(args.output_dir, "fit_sum_direct.png")
     save_mel_png(gt_png, gt_mel, sr, args.hop_length, "Ground Truth Mel")
     save_mel_png(recon_png, recon_mel, sr, args.hop_length, "Reconstruction Mel")
     save_mel_png(ridge_png, ridge_mel, sr, args.hop_length, "Ridge Only Mel")
     save_mel_png(ridge_direct_png, R, sr, args.hop_length, "Ridge Direct")
+    save_mel_png(gaussian_direct_png, G, sr, args.hop_length, "Gaussian Direct")
+    save_mel_png(fit_sum_direct_png, M_hat, sr, args.hop_length, "R + G Direct")
 
     params = {
         "n_fft": args.n_fft,
@@ -239,6 +243,8 @@ def main():
         ridge_png="ridge_mel.png",
         ridge_wav="ridge.wav",
         ridge_direct_png="ridge_direct.png",
+        gaussian_direct_png="gaussian_direct.png",
+        fit_sum_direct_png="fit_sum_direct.png",
     )
 
 
