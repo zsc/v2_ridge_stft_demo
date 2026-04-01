@@ -171,6 +171,10 @@ def render_mel_from_slots_numpy(center_idx, strength, basis, clip_upper=None):
     return np.clip(rendered, 0.0, None).astype(np.float32)
 
 
+def render_from_slots_numpy(center_idx, strength, basis, clip_upper=None):
+    return render_mel_from_slots_numpy(center_idx, strength, basis, clip_upper=clip_upper)
+
+
 def render_mel_from_slots_torch(center_idx, strength, basis, clip_upper=None, device=None):
     if torch is None:
         raise RuntimeError("PyTorch is not installed.")
@@ -196,6 +200,16 @@ def render_mel_from_slots_torch(center_idx, strength, basis, clip_upper=None, de
         clip_upper_t = torch.as_tensor(clip_upper, dtype=basis_t.dtype, device=basis_t.device)
         rendered = torch.minimum(rendered, clip_upper_t)
     return rendered.clamp_min(0.0)
+
+
+def render_from_slots_torch(center_idx, strength, basis, clip_upper=None, device=None):
+    return render_mel_from_slots_torch(
+        center_idx,
+        strength,
+        basis,
+        clip_upper=clip_upper,
+        device=device,
+    )
 
 
 def fit_strength_matrix_nnls(M, center_idx, basis, clip_upper=True):
