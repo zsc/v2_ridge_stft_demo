@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Compressed STFT Stage-1 Check: whisper_prompt.wav</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 24px; color: #1f1f1f; }
+table { border-collapse: collapse; margin-bottom: 20px; }
+th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(320px, 1fr)); gap: 18px; }
+img { width: 100%; height: auto; border: 1px solid #ccc; background: #111; }
+@media (min-width: 1400px) {
+  .grid { grid-template-columns: repeat(3, minmax(280px, 1fr)); }
+}
+</style>
+</head>
+<body>
+<h1>Compressed STFT Stage-1 Check: whisper_prompt.wav</h1>
+<table>
+<tr><th>input</th><td>/Users/zhousc6/d/Step-Audio-EditX/examples/whisper_prompt.wav</td></tr><tr><th>actual_sr</th><td>16000</td></tr><tr><th>shape</th><td>compressed=(201, 733) center_idx=(3, 733)</td></tr><tr><th>compressed_min</th><td>-2.17617512e-01</td></tr><tr><th>compressed_max</th><td>1.78238249e+00</td></tr><tr><th>negative_ratio</th><td>0.440994</td></tr><tr><th>support_floor_value</th><td>-2.17617512e-01</td></tr><tr><th>reference_max_log10</th><td>3.12952995e+00</td></tr><tr><th>power_clamped_inverse_max_abs_diff</th><td>0.00000000e+00</td></tr><tr><th>ridge_wrapper_max_abs_diff</th><td>0.00000000e+00</td></tr><tr><th>ridge_wrapper_relative_l2_diff</th><td>0.00000000e+00</td></tr><tr><th>coeff_map_max_abs_diff</th><td>0.00000000e+00</td></tr><tr><th>slot_strength_max_abs_diff</th><td>0.00000000e+00</td></tr><tr><th>compressed_recon_max_abs_diff</th><td>0.00000000e+00</td></tr><tr><th>torch_grad_norm</th><td>6.13200516e-02</td></tr>
+</table>
+<div class="grid">
+
+  <div class="column">
+    <h2>Compressed STFT</h2>
+    <img src="compressed_stft.png" alt="Compressed STFT" />
+  </div>
+  <div class="column">
+    <h2>Shifted Support Domain</h2>
+    <img src="shifted_stft.png" alt="Shifted Support Domain" />
+  </div>
+  <div class="column">
+    <h2>Stage-1 Support Strength</h2>
+    <img src="ridge_support.png" alt="Stage-1 Support Strength" />
+  </div>
+  <div class="column">
+    <h2>Stage-1 Ridge (Compressed View)</h2>
+    <img src="ridge_compressed.png" alt="Stage-1 Ridge (Compressed View)" />
+  </div>
+  <div class="column">
+    <h2>Residual (Compressed View)</h2>
+    <img src="residual_compressed.png" alt="Residual (Compressed View)" />
+  </div>
+  <div class="column">
+    <h2>Center Index Matrix</h2>
+    <img src="center_idx.png" alt="Center Index Matrix" />
+  </div>
+  <div class="column">
+    <h2>Power-Domain Strength Matrix</h2>
+    <img src="slot_strength.png" alt="Power-Domain Strength Matrix" />
+  </div>
+</div>
+</body>
+</html>

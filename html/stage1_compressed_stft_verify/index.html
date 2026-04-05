@@ -1,0 +1,286 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Compressed STFT Stage-1 Verification</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 24px; color: #1f1f1f; }
+a { color: #0b57d0; }
+ul { columns: 2; padding-left: 20px; }
+.item { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid #ddd; }
+.metrics { font-family: monospace; font-size: 12px; white-space: pre-wrap; }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(280px, 1fr)); gap: 18px; }
+img { width: 100%; height: auto; border: 1px solid #ccc; background: #111; }
+audio { width: 100%; margin-top: 10px; }
+</style>
+</head>
+<body>
+<h1>Compressed STFT Stage-1 Verification</h1>
+<p>Total files: 9</p>
+<ul>
+<li><a href="#input">input.wav</a></li><li><a href="#denoise_prompt">denoise_prompt.wav</a></li><li><a href="#en_happy_prompt">en_happy_prompt.wav</a></li><li><a href="#fear_zh_female_prompt">fear_zh_female_prompt.wav</a></li><li><a href="#paralingustic_prompt">paralingustic_prompt.wav</a></li><li><a href="#speed_prompt">speed_prompt.wav</a></li><li><a href="#vad_prompt">vad_prompt.wav</a></li><li><a href="#whisper_prompt">whisper_prompt.wav</a></li><li><a href="#zero_shot_en_prompt">zero_shot_en_prompt.wav</a></li>
+</ul>
+
+<section class="item" id="input">
+  <div class="item-header">
+    <h2>input.wav</h2>
+    <p><a href="input/report.html">Per-file report</a></p>
+    <p class="metrics">
+      raw_min=-0.173964
+      raw_max=1.826036
+      floor_value=-0.173964
+      recon_max_abs_diff=0.00000000e+00
+      coeff_max_abs_diff=0.00000000e+00
+      grad_norm=1.78947914e-02
+    </p>
+  </div>
+  <div class="grid">
+    <div class="column">
+      <h3>Compressed STFT</h3>
+      <img src="input/compressed_stft.png" alt="Compressed STFT" />
+    </div>
+    <div class="column">
+      <h3>Stage-1 Ridge (Compressed View)</h3>
+      <img src="input/ridge_compressed.png" alt="Stage-1 Ridge" />
+      <audio controls preload="none" src="input/ridge_griffinlim.wav"></audio>
+    </div>
+    <div class="column">
+      <h3>Residual (Compressed View)</h3>
+      <img src="input/residual_compressed.png" alt="Residual" />
+    </div>
+  </div>
+</section>
+<section class="item" id="denoise_prompt">
+  <div class="item-header">
+    <h2>denoise_prompt.wav</h2>
+    <p><a href="denoise_prompt/report.html">Per-file report</a></p>
+    <p class="metrics">
+      raw_min=-0.298701
+      raw_max=1.701299
+      floor_value=-0.298701
+      recon_max_abs_diff=0.00000000e+00
+      coeff_max_abs_diff=0.00000000e+00
+      grad_norm=1.49204070e-03
+    </p>
+  </div>
+  <div class="grid">
+    <div class="column">
+      <h3>Compressed STFT</h3>
+      <img src="denoise_prompt/compressed_stft.png" alt="Compressed STFT" />
+    </div>
+    <div class="column">
+      <h3>Stage-1 Ridge (Compressed View)</h3>
+      <img src="denoise_prompt/ridge_compressed.png" alt="Stage-1 Ridge" />
+      <audio controls preload="none" src="denoise_prompt/ridge_griffinlim.wav"></audio>
+    </div>
+    <div class="column">
+      <h3>Residual (Compressed View)</h3>
+      <img src="denoise_prompt/residual_compressed.png" alt="Residual" />
+    </div>
+  </div>
+</section>
+<section class="item" id="en_happy_prompt">
+  <div class="item-header">
+    <h2>en_happy_prompt.wav</h2>
+    <p><a href="en_happy_prompt/report.html">Per-file report</a></p>
+    <p class="metrics">
+      raw_min=-0.205138
+      raw_max=1.794862
+      floor_value=-0.205138
+      recon_max_abs_diff=0.00000000e+00
+      coeff_max_abs_diff=0.00000000e+00
+      grad_norm=1.91046707e-02
+    </p>
+  </div>
+  <div class="grid">
+    <div class="column">
+      <h3>Compressed STFT</h3>
+      <img src="en_happy_prompt/compressed_stft.png" alt="Compressed STFT" />
+    </div>
+    <div class="column">
+      <h3>Stage-1 Ridge (Compressed View)</h3>
+      <img src="en_happy_prompt/ridge_compressed.png" alt="Stage-1 Ridge" />
+      <audio controls preload="none" src="en_happy_prompt/ridge_griffinlim.wav"></audio>
+    </div>
+    <div class="column">
+      <h3>Residual (Compressed View)</h3>
+      <img src="en_happy_prompt/residual_compressed.png" alt="Residual" />
+    </div>
+  </div>
+</section>
+<section class="item" id="fear_zh_female_prompt">
+  <div class="item-header">
+    <h2>fear_zh_female_prompt.wav</h2>
+    <p><a href="fear_zh_female_prompt/report.html">Per-file report</a></p>
+    <p class="metrics">
+      raw_min=-0.171378
+      raw_max=1.828622
+      floor_value=-0.171378
+      recon_max_abs_diff=0.00000000e+00
+      coeff_max_abs_diff=0.00000000e+00
+      grad_norm=1.78520586e-02
+    </p>
+  </div>
+  <div class="grid">
+    <div class="column">
+      <h3>Compressed STFT</h3>
+      <img src="fear_zh_female_prompt/compressed_stft.png" alt="Compressed STFT" />
+    </div>
+    <div class="column">
+      <h3>Stage-1 Ridge (Compressed View)</h3>
+      <img src="fear_zh_female_prompt/ridge_compressed.png" alt="Stage-1 Ridge" />
+      <audio controls preload="none" src="fear_zh_female_prompt/ridge_griffinlim.wav"></audio>
+    </div>
+    <div class="column">
+      <h3>Residual (Compressed View)</h3>
+      <img src="fear_zh_female_prompt/residual_compressed.png" alt="Residual" />
+    </div>
+  </div>
+</section>
+<section class="item" id="paralingustic_prompt">
+  <div class="item-header">
+    <h2>paralingustic_prompt.wav</h2>
+    <p><a href="paralingustic_prompt/report.html">Per-file report</a></p>
+    <p class="metrics">
+      raw_min=-0.173964
+      raw_max=1.826036
+      floor_value=-0.173964
+      recon_max_abs_diff=0.00000000e+00
+      coeff_max_abs_diff=0.00000000e+00
+      grad_norm=1.78947914e-02
+    </p>
+  </div>
+  <div class="grid">
+    <div class="column">
+      <h3>Compressed STFT</h3>
+      <img src="paralingustic_prompt/compressed_stft.png" alt="Compressed STFT" />
+    </div>
+    <div class="column">
+      <h3>Stage-1 Ridge (Compressed View)</h3>
+      <img src="paralingustic_prompt/ridge_compressed.png" alt="Stage-1 Ridge" />
+      <audio controls preload="none" src="paralingustic_prompt/ridge_griffinlim.wav"></audio>
+    </div>
+    <div class="column">
+      <h3>Residual (Compressed View)</h3>
+      <img src="paralingustic_prompt/residual_compressed.png" alt="Residual" />
+    </div>
+  </div>
+</section>
+<section class="item" id="speed_prompt">
+  <div class="item-header">
+    <h2>speed_prompt.wav</h2>
+    <p><a href="speed_prompt/report.html">Per-file report</a></p>
+    <p class="metrics">
+      raw_min=-0.242803
+      raw_max=1.757197
+      floor_value=-0.242803
+      recon_max_abs_diff=0.00000000e+00
+      coeff_max_abs_diff=0.00000000e+00
+      grad_norm=6.27169013e-02
+    </p>
+  </div>
+  <div class="grid">
+    <div class="column">
+      <h3>Compressed STFT</h3>
+      <img src="speed_prompt/compressed_stft.png" alt="Compressed STFT" />
+    </div>
+    <div class="column">
+      <h3>Stage-1 Ridge (Compressed View)</h3>
+      <img src="speed_prompt/ridge_compressed.png" alt="Stage-1 Ridge" />
+      <audio controls preload="none" src="speed_prompt/ridge_griffinlim.wav"></audio>
+    </div>
+    <div class="column">
+      <h3>Residual (Compressed View)</h3>
+      <img src="speed_prompt/residual_compressed.png" alt="Residual" />
+    </div>
+  </div>
+</section>
+<section class="item" id="vad_prompt">
+  <div class="item-header">
+    <h2>vad_prompt.wav</h2>
+    <p><a href="vad_prompt/report.html">Per-file report</a></p>
+    <p class="metrics">
+      raw_min=-0.307295
+      raw_max=1.692705
+      floor_value=-0.307295
+      recon_max_abs_diff=0.00000000e+00
+      coeff_max_abs_diff=0.00000000e+00
+      grad_norm=1.37502640e-01
+    </p>
+  </div>
+  <div class="grid">
+    <div class="column">
+      <h3>Compressed STFT</h3>
+      <img src="vad_prompt/compressed_stft.png" alt="Compressed STFT" />
+    </div>
+    <div class="column">
+      <h3>Stage-1 Ridge (Compressed View)</h3>
+      <img src="vad_prompt/ridge_compressed.png" alt="Stage-1 Ridge" />
+      <audio controls preload="none" src="vad_prompt/ridge_griffinlim.wav"></audio>
+    </div>
+    <div class="column">
+      <h3>Residual (Compressed View)</h3>
+      <img src="vad_prompt/residual_compressed.png" alt="Residual" />
+    </div>
+  </div>
+</section>
+<section class="item" id="whisper_prompt">
+  <div class="item-header">
+    <h2>whisper_prompt.wav</h2>
+    <p><a href="whisper_prompt/report.html">Per-file report</a></p>
+    <p class="metrics">
+      raw_min=-0.217618
+      raw_max=1.782382
+      floor_value=-0.217618
+      recon_max_abs_diff=0.00000000e+00
+      coeff_max_abs_diff=0.00000000e+00
+      grad_norm=6.13200516e-02
+    </p>
+  </div>
+  <div class="grid">
+    <div class="column">
+      <h3>Compressed STFT</h3>
+      <img src="whisper_prompt/compressed_stft.png" alt="Compressed STFT" />
+    </div>
+    <div class="column">
+      <h3>Stage-1 Ridge (Compressed View)</h3>
+      <img src="whisper_prompt/ridge_compressed.png" alt="Stage-1 Ridge" />
+      <audio controls preload="none" src="whisper_prompt/ridge_griffinlim.wav"></audio>
+    </div>
+    <div class="column">
+      <h3>Residual (Compressed View)</h3>
+      <img src="whisper_prompt/residual_compressed.png" alt="Residual" />
+    </div>
+  </div>
+</section>
+<section class="item" id="zero_shot_en_prompt">
+  <div class="item-header">
+    <h2>zero_shot_en_prompt.wav</h2>
+    <p><a href="zero_shot_en_prompt/report.html">Per-file report</a></p>
+    <p class="metrics">
+      raw_min=-0.347865
+      raw_max=1.652135
+      floor_value=-0.347865
+      recon_max_abs_diff=0.00000000e+00
+      coeff_max_abs_diff=0.00000000e+00
+      grad_norm=2.19246671e-01
+    </p>
+  </div>
+  <div class="grid">
+    <div class="column">
+      <h3>Compressed STFT</h3>
+      <img src="zero_shot_en_prompt/compressed_stft.png" alt="Compressed STFT" />
+    </div>
+    <div class="column">
+      <h3>Stage-1 Ridge (Compressed View)</h3>
+      <img src="zero_shot_en_prompt/ridge_compressed.png" alt="Stage-1 Ridge" />
+      <audio controls preload="none" src="zero_shot_en_prompt/ridge_griffinlim.wav"></audio>
+    </div>
+    <div class="column">
+      <h3>Residual (Compressed View)</h3>
+      <img src="zero_shot_en_prompt/residual_compressed.png" alt="Residual" />
+    </div>
+  </div>
+</section>
+</body>
+</html>
